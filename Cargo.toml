@@ -1,0 +1,12 @@
+[package]
+name = "monado-gui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+egui = "0.19.0"
+eframe = "0.19.0"
+fork = "0.1.20"
+nix = {version = "0.25.0", features = ["process"]}
