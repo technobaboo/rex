@@ -13,7 +13,7 @@ use fork::Fork;
 use crate::MonadoRunning::{False, True};
 use crate::monado_env_var::MonadoEnvVar;
 use crate::monado_env_var::xrt::{WindowType, XcbScreenNumber, XcbScreenType};
-use crate::monado_env_var::xrt::WindowType::{Auto, NvidiaDirect, NvidiaDirectDisplay, RandrDirect, Wayland, WaylandDirect};
+use crate::monado_env_var::xrt::WindowType::{Auto, NvidiaDirect, RandrDirect, Wayland, WaylandDirect};
 use crate::WindowType::{Vk, Xcb};
 
 fn main() {
@@ -84,6 +84,7 @@ pub mod monado_env_var {
             pub xcb_fullscreen: bool,
             pub xcb_screen: u32,
             pub nvidia_str: String,
+            pub nvidia_str_enabled: bool,
             pub force_gpu_index: i32,
             pub force_client_gpu_index: i32,
             pub desired_mode: i32,
@@ -98,6 +99,7 @@ pub mod monado_env_var {
                     print_modes: false,
                     window_type: WindowType::default(),
                     nvidia_str: String::default(),
+                    nvidia_str_enabled: false,
                     xcb_fullscreen: false,
                     xcb_screen: 0,
                     force_gpu_index: -1,
@@ -112,13 +114,12 @@ pub mod monado_env_var {
         #[derive(PartialEq)]
         pub enum WindowType {
             Auto,
-            NvidiaDirect,
+            NvidiaDirect(Option<String>),
             Vk(u32),
             RandrDirect,
             WaylandDirect,
             Xcb(XcbScreenType, XcbScreenNumber),
             Wayland,
-            NvidiaDirectDisplay(String)
         }
         impl Default for WindowType {
             fn default() -> Self {
@@ -200,15 +201,16 @@ impl eframe::App for MyEguiApp {
                         ui.radio_value(&mut compositor.window_type, Wayland, "Wayland");
                         ui.radio_value(&mut compositor.window_type, WaylandDirect, "Wayland Direct");
                         ui.radio_value(&mut compositor.window_type, RandrDirect, "Randr Direct");
-                        ui.radio_value(&mut compositor.window_type, NvidiaDirect, "Nvidia Direct");
                         {
                             ui.horizontal_wrapped(|ui| {
-                                let radio = ui.add(egui::RadioButton::new( matches!(&mut compositor.window_type, NvidiaDirectDisplay(_)), "Nvidia Direct Display"));
+                                let radio = ui.add(egui::RadioButton::new( matches!(&mut compositor.window_type, NvidiaDirect(_)), "Nvidia Direct"));
                                 if radio.clicked() {
-                                    *&mut compositor.window_type = NvidiaDirectDisplay(String::new());
+                                    *&mut compositor.window_type = NvidiaDirect(Some(String::new()));
                                 }
-                                let is_enabled = matches!(&mut compositor.window_type, NvidiaDirectDisplay(_));
-                                ui.add_enabled_ui(is_enabled, |ui| ui.text_edit_singleline(&mut compositor.nvidia_str) );
+                                let is_enabled = matches!(&mut compositor.window_type, NvidiaDirect(_));
+                                ui.add_enabled_ui(is_enabled, |ui| ui.checkbox(&mut compositor.nvidia_str_enabled, "Enable Custom Display String"));
+                                let enable_display_str = compositor.nvidia_str_enabled;
+                                ui.add_enabled_ui((enable_display_str && is_enabled), |ui| ui.text_edit_singleline(&mut compositor.nvidia_str) );
                             });
                         }
                         {
@@ -274,7 +276,13 @@ fn start_monado(monado_env_var: &MonadoEnvVar) -> Child {
                 monado_service.env("XRT_COMPOSITOR_LOG", compositor.log.to_string());
                 match &compositor.window_type {
                     Auto => {}
-                    NvidiaDirect => { monado_service.env("XRT_COMPOSITOR_FORCE_NVIDIA", "true"); }
+                    NvidiaDirect(opt_display_string) => {
+                        monado_service.env("XRT_COMPOSITOR_FORCE_NVIDIA", "true");
+                        match opt_display_string {
+                            None => {}
+                            Some(display_str) => {monado_service.env("XRT_COMPOSITOR_FORCE_NVIDIA_DISPLAY", display_str);}
+                        }
+                    }
                     Vk(vk) => { monado_service.env("XRT_COMPOSITOR_FORCE_VK_DISPLAY", vk.to_string()); }
                     RandrDirect => { monado_service.env("XRT_COMPOSITOR_FORCE_RANDR", "true"); }
                     WaylandDirect => { monado_service.env("XRT_COMPOSITOR_FORCE_WAYLAND_DIRECT", "true"); }
@@ -284,7 +292,6 @@ fn start_monado(monado_env_var: &MonadoEnvVar) -> Child {
                         monado_service.env("XRT_COMPOSITOR_XCB_DISPLAY", screen_number.0.to_string());
                     }
                     Wayland => { monado_service.env("XRT_COMPOSITOR_FORCE_WAYLAND", "true"); }
-                    NvidiaDirectDisplay(display_string) => { monado_service.env("XRT_COMPOSITOR_FORCE_NVIDIA_DISPLAY", display_string); }
                 };
                 // monado_service.env("XRT_COMPOSITOR_PRINT_MODES", compositor.print_modes.to_string());
                 // monado_service.env("XRT_COMPOSITOR_FORCE_RANDR", compositor.force_randr.to_string());
