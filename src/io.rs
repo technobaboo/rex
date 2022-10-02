@@ -113,7 +113,16 @@ impl UiSect for MainConsole {
         let mut this = &mut state.io.main_console;
         ui.horizontal(|ui| {
             if ui.button("Copy To Clipboard").clicked() {
-                ui.output().copied_text = this.input.clone()
+                let mut output_string = String::new();
+                this.input.ansi_parse().for_each(|ansi| {
+                   match ansi {
+                       Output::TextBlock(block) => {
+                           output_string.push_str(block);
+                       }
+                       Output::Escape(_) => {}
+                   }
+                });
+                ui.output().copied_text = output_string;
             };
             if ui.button("Clear").clicked() {
                 this.input = String::new();
