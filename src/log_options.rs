@@ -15,11 +15,11 @@ pub struct CompositorLog { }
 impl UiSect for CompositorLog {
     fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
         ui.collapsing("Compositor Log", |ui| {
-            ui.radio_value(&mut state.env_vars.compositor_log_level,LoggingLevel::Info, "Info");
-            ui.radio_value(&mut state.env_vars.compositor_log_level,LoggingLevel::Debug, "Debug");
-            ui.radio_value(&mut state.env_vars.compositor_log_level,LoggingLevel::Trace, "Trace");
-            ui.radio_value(&mut state.env_vars.compositor_log_level,LoggingLevel::Warn, "Warn");
-            ui.radio_value(&mut state.env_vars.compositor_log_level,LoggingLevel::Error, "Error");
+            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Info, "Info");
+            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Debug, "Debug");
+            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Trace, "Trace");
+            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Warn, "Warn");
+            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Error, "Error");
         });
     }
 }
