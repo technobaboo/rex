@@ -2,6 +2,7 @@ mod env_var;
 mod monado_control;
 mod traits;
 mod io;
+mod log_options;
 
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
@@ -27,7 +28,7 @@ pub struct MonadoGuiApp {
     io: Io,
     monado_control: MonadoControl,
     child: Option<Popen>,
-    env_vars: EnvVar,
+    pub env_vars: EnvVar,
 }
 
 impl Default for MonadoGuiApp {

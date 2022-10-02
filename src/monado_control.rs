@@ -73,7 +73,7 @@ fn kill_monado(child: &mut Popen) {
 }
 fn start_monado(monado_env_var: &mut EnvVar, stdout_sender: Arc<Mutex<SyncSender<String>>>) -> Popen {
     let mut command = Exec::cmd("monado-service");
-    monado_env_var.set_vars(&mut command);
+    command = monado_env_var.set_vars(command);
     command = command.stderr(Redirection::Merge);
     command = command.stdout(Redirection::Pipe);
     command = command.stdin(Redirection::None);
