@@ -36,7 +36,7 @@ impl Io {
 impl CtxSect for Io {
     fn update(state: &mut MonadoGuiApp, ctx: &Context, frame: &Frame) {
         egui::Window::new("I/O").collapsible(true).resizable(true).default_size(frame.info().window_info.size.div(Vec2::new(3.0, 3.0))).show(ctx, |ui| {
-            ScrollArea::new([true, true]).stick_to_bottom(true).stick_to_right(true).max_width(ui.available_width()-30.0).max_height(ui.available_height()-30.0).show(ui, |ui| {
+            ScrollArea::new([true, true]).stick_to_bottom(true).max_width(ui.available_width()-30.0).max_height(ui.available_height()-30.0).show(ui, |ui| {
                 let mut text_layout_job = LayoutJob::default();
                 let mut output = None;
                 &state.io.main_console.input.ansi_parse().for_each(|a| {
@@ -58,8 +58,13 @@ impl CtxSect for Io {
                                            let my_vec = graphics.to_vec();
                                            if graphics.len() > 1 {
                                                match graphics.get(1).unwrap() {
-                                                   33 => {color = Color32::YELLOW}
-                                                   34 => {color = Color32::BLUE}
+                                                   31 => {color = Color32::RED;}
+                                                   32 => {color = Color32::GREEN;}
+                                                   33 => {color = Color32::YELLOW;}
+                                                   34 => {color = Color32::BLUE;}
+                                                   35 => {color = Color32::from_rgb(255, 0, 255);}
+                                                   36 => {color = Color32::from_rgb(0, 255, 255);}
+                                                   37 => {color = Color32::from_rgb(255, 255, 255); }
                                                    &_ => {}
                                                }
                                            } else {
@@ -89,7 +94,6 @@ impl CtxSect for Io {
                 });
                 let galley = ctx.fonts().layout_job(text_layout_job);
                 ui.label(Galley(galley));
-                //ui.label(WidgetText::from(RichText::new(&state.io.main_console.input).monospace()));
             });
             MainConsole::update(state, ui);
         });

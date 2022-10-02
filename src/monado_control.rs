@@ -37,6 +37,7 @@ impl CtxSect for MonadoControl {
             ui.horizontal(|ui| {
                 let start_button = ui.add_enabled_ui(state.child.is_none(), |ui| egui::Button::new("Start").fill(Color32::from_rgb(0, 40, 0)).ui(ui));
                 let stop_button = ui.add_enabled_ui(state.child.is_some(), |ui| egui::Button::new("Stop").fill(Color32::from_rgb(40, 0, 0)).ui(ui));
+                let restart_button = ui.add_enabled_ui(state.child.is_some(), |ui| egui::Button::new("Restart").fill(Color32::from_rgb(20, 20, 0)).ui(ui));
                 if start_button.inner.clicked() {
                     let mut env_vars = &mut state.env_vars;
                     state.child.replace(start_monado(&mut env_vars, state.monado_control.stdout_sender.clone()));
@@ -47,6 +48,14 @@ impl CtxSect for MonadoControl {
                         Some(child) => { kill_monado(child); state.child.take();}
                     }
                 }
+                if restart_button.inner.clicked() {
+                    match &mut state.child {
+                        None => {}
+                        Some(child) => { kill_monado(child); state.child.take();}
+                    }
+                    let mut env_vars = &mut state.env_vars;
+                    state.child.replace(start_monado(&mut env_vars, state.monado_control.stdout_sender.clone()));
+                }
             });
         });
     }
@@ -55,6 +64,10 @@ impl CtxSect for MonadoControl {
 fn kill_monado(child: &mut Popen) {
     println!("killing: {}", child.pid().unwrap());
     child.kill().unwrap();
+    match nix::sys::wait::wait() {
+        Ok(_) => {}
+        Err(_) => {}
+    }
     //We don't need this because we wait in the thread.
     //nix::sys::wait::wait().unwrap();
 }
