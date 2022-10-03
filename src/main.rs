@@ -3,6 +3,7 @@ mod monado_control;
 mod traits;
 mod io;
 mod log_options;
+mod compositor;
 
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
@@ -15,6 +16,7 @@ use std::thread::Thread;
 use eframe::Frame;
 use egui::{Context, Visuals};
 use subprocess::Popen;
+use crate::compositor::CompositorWindow;
 use crate::env_var::EnvVar;
 use crate::io::Io;
 use crate::monado_control::MonadoControl;
@@ -27,6 +29,7 @@ pub fn main() {
 pub struct MonadoGuiApp {
     io: Io,
     monado_control: MonadoControl,
+    compositor_window: CompositorWindow,
     child: Option<Popen>,
     pub env_vars: EnvVar,
 }
@@ -37,6 +40,7 @@ impl Default for MonadoGuiApp {
         MonadoGuiApp {
             io: Io::new(channel.1),
             monado_control: MonadoControl::new(channel.0),
+            compositor_window: CompositorWindow::new(),
             child: None,
             env_vars: EnvVar::default(),
         }
@@ -47,6 +51,7 @@ impl eframe::App for MonadoGuiApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         Io::update( self, ctx, frame);
         MonadoControl::update( self, ctx, frame);
+        CompositorWindow::update(self, ctx, frame);
     }
 }
 
