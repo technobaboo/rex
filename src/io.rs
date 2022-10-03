@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{Receiver, Sender, sync_channel, SyncSender, TryRecvError};
 use ansi_parser::{AnsiParser, AnsiSequence, Output};
 use eframe::Frame;
-use egui::{Align2, Color32, Context, FontFamily, FontId, RichText, ScrollArea, Separator, TextFormat, Ui, Vec2, WidgetText};
+use egui::{Align2, Color32, Context, FontFamily, FontId, Pos2, RichText, ScrollArea, Separator, TextFormat, Ui, Vec2, WidgetText};
 use egui::emath::align;
 use egui::panel::Side;
 use egui::text::{Fonts, LayoutJob};
@@ -36,7 +36,7 @@ impl Io {
 
 impl CtxSect for Io {
     fn update(state: &mut MonadoGuiApp, ctx: &Context, frame: &Frame) {
-        egui::Window::new("I/O").collapsible(true).resizable(true).default_size(frame.info().window_info.size.div(Vec2::new(3.0, 3.0))).show(ctx, |ui| {
+        egui::Window::new("I/O").default_pos(Pos2::new(frame.info().window_info.size.x, 0.0)).collapsible(true).resizable(true).default_size(frame.info().window_info.size.div(Vec2::new(3.0, 3.0))).show(ctx, |ui| {
 
             LogOptions::update(state, ui);
             MainConsole::update(state, ui);
