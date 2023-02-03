@@ -1,51 +1,46 @@
-use crate::traits::UiSect;
-use crate::MonadoGuiApp;
-use egui::Ui;
+use crate::RexApp;
+use egui::{ComboBox, Context, Ui};
+use serde::{Deserialize, Serialize};
+use std::default::Default;
 use subprocess::Exec;
 
-pub struct LogOptions {}
-impl UiSect for LogOptions {
-    fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
-        ui.collapsing("Logging Options", |ui| {
-            CompositorLog::update(state, ui);
+pub fn update(state: &mut RexApp, ctx: &Context) {
+    egui::Window::new("Logging Options")
+        .collapsible(true)
+        .show(ctx, |ui| {
+            compositor_update(state, ui);
         });
+}
+fn compositor_update(state: &mut RexApp, ui: &mut Ui) {
+    log_level_dropdown(state, ui, "Compositor", |s| {
+        &mut s.logging_env_vars.compositor_log
+    });
+}
+
+fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(
+    state: &mut RexApp,
+    ui: &mut Ui,
+    name: &str,
+    log_level_fn: F,
+) {
+    let log_level = log_level_fn(state);
+    let old_value = log_level.clone();
+    ComboBox::from_label(name)
+        .selected_text(format!("{:?}", log_level))
+        .show_ui(ui, |ui| {
+            ui.selectable_value(log_level, LoggingLevel::Info, "Info");
+            ui.selectable_value(log_level, LoggingLevel::Debug, "Debug");
+            ui.selectable_value(log_level, LoggingLevel::Trace, "Trace");
+            ui.selectable_value(log_level, LoggingLevel::Warn, "Warn");
+            ui.selectable_value(log_level, LoggingLevel::Error, "Error");
+        });
+    if *log_level != old_value {
+        drop(log_level);
+        state.save_global().unwrap();
     }
 }
 
-pub struct CompositorLog {}
-impl UiSect for CompositorLog {
-    fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
-        ui.collapsing("Compositor Log", |ui| {
-            ui.radio_value(
-                &mut state.env_vars.logging_env_vars.compositor_log,
-                LoggingLevel::Info,
-                "Info",
-            );
-            ui.radio_value(
-                &mut state.env_vars.logging_env_vars.compositor_log,
-                LoggingLevel::Debug,
-                "Debug",
-            );
-            ui.radio_value(
-                &mut state.env_vars.logging_env_vars.compositor_log,
-                LoggingLevel::Trace,
-                "Trace",
-            );
-            ui.radio_value(
-                &mut state.env_vars.logging_env_vars.compositor_log,
-                LoggingLevel::Warn,
-                "Warn",
-            );
-            ui.radio_value(
-                &mut state.env_vars.logging_env_vars.compositor_log,
-                LoggingLevel::Error,
-                "Error",
-            );
-        });
-    }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Copy, Clone)]
 pub enum LoggingLevel {
     Trace,
     Debug,
@@ -64,6 +59,7 @@ impl ToString for LoggingLevel {
         }
     }
 }
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub struct LoggingEnvVars {
     pub compositor_log: LoggingLevel,
     pub egl_swap_chain_log: LoggingLevel,

@@ -1,25 +1,24 @@
 use crate::compositor::WindowType::{
     Auto, NvidiaDirect, RandrDirect, Vk, Wayland, WaylandDirect, Xcb,
 };
-use crate::traits::UiSect;
-use crate::{CtxSect, MonadoGuiApp};
-use eframe::Frame;
+use crate::instance::MonadoInstance;
 use egui::{Context, Ui, WidgetText};
+use serde::{Deserialize, Serialize};
 use std::ops::RangeInclusive;
 use subprocess::Exec;
 
-pub struct CompositorWindow {
+#[derive(Default, Debug, Serialize, Deserialize)]
+pub struct CompositorSettings {
     pub forcing: Forcing,
 }
-impl CompositorWindow {
+impl CompositorSettings {
     pub fn new() -> Self {
-        CompositorWindow {
+        CompositorSettings {
             forcing: Forcing::default(),
         }
     }
-}
-impl CtxSect for CompositorWindow {
-    fn update(state: &mut MonadoGuiApp, ctx: &Context, _frame: &Frame) {
+
+    pub fn update(state: &mut MonadoInstance, ctx: &Context) {
         egui::Window::new("Compositor")
             .collapsible(true)
             .show(ctx, |ui| {
@@ -27,6 +26,8 @@ impl CtxSect for CompositorWindow {
             });
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Forcing {
     pub nvidia_str_enabled: bool,
     pub nvidia_str: String,
@@ -43,43 +44,43 @@ impl Default for Forcing {
         }
     }
 }
-impl UiSect for Forcing {
-    fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
+impl Forcing {
+    pub fn update(inst: &mut MonadoInstance, ui: &mut Ui) {
         ui.collapsing("Forcing", |ui| {
-            ui.radio_value(&mut state.env_vars.window_type, Auto, "Auto");
-            ui.radio_value(&mut state.env_vars.window_type, Wayland, "Wayland");
+            ui.radio_value(&mut inst.env_vars.window_type, Auto, "Auto");
+            ui.radio_value(&mut inst.env_vars.window_type, Wayland, "Wayland");
             ui.radio_value(
-                &mut state.env_vars.window_type,
+                &mut inst.env_vars.window_type,
                 WaylandDirect,
                 "Wayland Direct",
             );
-            ui.radio_value(&mut state.env_vars.window_type, RandrDirect, "Randr Direct");
+            ui.radio_value(&mut inst.env_vars.window_type, RandrDirect, "Randr Direct");
             {
                 ui.horizontal_wrapped(|ui| {
                     let radio = ui.add(egui::RadioButton::new(
-                        matches!(&mut state.env_vars.window_type, NvidiaDirect(_)),
+                        matches!(&mut inst.env_vars.window_type, NvidiaDirect(_)),
                         "Nvidia Direct",
                     ));
                     if radio.clicked() {
-                        state.env_vars.window_type = NvidiaDirect(Some(String::new()));
+                        inst.env_vars.window_type = NvidiaDirect(Some(String::new()));
                     }
-                    let is_enabled = matches!(&mut state.env_vars.window_type, NvidiaDirect(_));
+                    let is_enabled = matches!(&mut inst.env_vars.window_type, NvidiaDirect(_));
                     ui.add_enabled_ui(is_enabled, |ui| {
                         ui.checkbox(
-                            &mut state.compositor_window.forcing.nvidia_str_enabled,
+                            &mut inst.compositor_settings.forcing.nvidia_str_enabled,
                             "Enable Custom Display String",
                         )
                     });
-                    let enable_display_str = state.compositor_window.forcing.nvidia_str_enabled;
+                    let enable_display_str = inst.compositor_settings.forcing.nvidia_str_enabled;
                     ui.add_enabled_ui(enable_display_str && is_enabled, |ui| {
-                        ui.text_edit_singleline(&mut state.compositor_window.forcing.nvidia_str)
+                        ui.text_edit_singleline(&mut inst.compositor_settings.forcing.nvidia_str)
                     });
                 });
             }
             {
                 let radio = ui
                     .add(egui::RadioButton::new(
-                        matches!(&mut state.env_vars.window_type, Xcb(_, _)),
+                        matches!(&mut inst.env_vars.window_type, Xcb(_, _)),
                         "Xcb",
                     ))
                     .on_hover_ui(|ui| {
@@ -88,19 +89,18 @@ impl UiSect for Forcing {
                         );
                     });
                 if radio.clicked() {
-                    state.env_vars.window_type =
-                        Xcb(XcbScreenType::Windowed, XcbScreenNumber(0));
+                    inst.env_vars.window_type = Xcb(XcbScreenType::Windowed, XcbScreenNumber(0));
                 }
                 egui::CollapsingHeader::new(WidgetText::default())
-                    .open(Some(matches!(&mut state.env_vars.window_type, Xcb(_, _))))
-                    .enabled(matches!(&mut state.env_vars.window_type, Xcb(_, _)))
+                    .open(Some(matches!(&mut inst.env_vars.window_type, Xcb(_, _))))
+                    .enabled(matches!(&mut inst.env_vars.window_type, Xcb(_, _)))
                     .show(ui, |ui| {
                         ui.checkbox(
-                            &mut state.compositor_window.forcing.xcb_fullscreen,
+                            &mut inst.compositor_settings.forcing.xcb_fullscreen,
                             "Fullscreen",
                         );
                         ui.add(
-                            egui::DragValue::new(&mut state.compositor_window.forcing.xcb_screen)
+                            egui::DragValue::new(&mut inst.compositor_settings.forcing.xcb_screen)
                                 .clamp_range(RangeInclusive::new(0, 10)),
                         );
                     });
@@ -108,7 +108,7 @@ impl UiSect for Forcing {
         });
     }
 }
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum WindowType {
     Auto,
     NvidiaDirect(Option<String>),
@@ -160,7 +160,7 @@ impl Default for WindowType {
         WindowType::Auto
     }
 }
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum XcbScreenType {
     Fullscreen,
     Windowed,
@@ -170,5 +170,5 @@ impl Default for XcbScreenType {
         XcbScreenType::Windowed
     }
 }
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct XcbScreenNumber(pub u32);
