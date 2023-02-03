@@ -1,31 +1,51 @@
+use crate::traits::UiSect;
+use crate::MonadoGuiApp;
 use egui::Ui;
 use subprocess::Exec;
-use crate::MonadoGuiApp;
-use crate::traits::UiSect;
 
-pub struct LogOptions { }
+pub struct LogOptions {}
 impl UiSect for LogOptions {
     fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
         ui.collapsing("Logging Options", |ui| {
-           CompositorLog::update(state, ui);
+            CompositorLog::update(state, ui);
         });
     }
 }
 
-pub struct CompositorLog { }
+pub struct CompositorLog {}
 impl UiSect for CompositorLog {
     fn update(state: &mut MonadoGuiApp, ui: &mut Ui) {
         ui.collapsing("Compositor Log", |ui| {
-            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Info, "Info");
-            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Debug, "Debug");
-            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Trace, "Trace");
-            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Warn, "Warn");
-            ui.radio_value(&mut state.env_vars.logging_env_vars.compositor_log, LoggingLevel::Error, "Error");
+            ui.radio_value(
+                &mut state.env_vars.logging_env_vars.compositor_log,
+                LoggingLevel::Info,
+                "Info",
+            );
+            ui.radio_value(
+                &mut state.env_vars.logging_env_vars.compositor_log,
+                LoggingLevel::Debug,
+                "Debug",
+            );
+            ui.radio_value(
+                &mut state.env_vars.logging_env_vars.compositor_log,
+                LoggingLevel::Trace,
+                "Trace",
+            );
+            ui.radio_value(
+                &mut state.env_vars.logging_env_vars.compositor_log,
+                LoggingLevel::Warn,
+                "Warn",
+            );
+            ui.radio_value(
+                &mut state.env_vars.logging_env_vars.compositor_log,
+                LoggingLevel::Error,
+                "Error",
+            );
         });
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum LoggingLevel {
     Trace,
     Debug,
@@ -36,11 +56,11 @@ pub enum LoggingLevel {
 impl ToString for LoggingLevel {
     fn to_string(&self) -> String {
         match self {
-            LoggingLevel::Trace => {String::from("trace")}
-            LoggingLevel::Debug => {String::from("debug")}
-            LoggingLevel::Info => {String::from("info")}
-            LoggingLevel::Warn => {String::from("warn")}
-            LoggingLevel::Error => {String::from("error")}
+            LoggingLevel::Trace => String::from("trace"),
+            LoggingLevel::Debug => String::from("debug"),
+            LoggingLevel::Info => String::from("info"),
+            LoggingLevel::Warn => String::from("warn"),
+            LoggingLevel::Error => String::from("error"),
         }
     }
 }
