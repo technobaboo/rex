@@ -37,6 +37,7 @@ fn monado_control_buttons(state: &mut RexApp, ui: &mut Ui) {
     if start_button.inner.clicked() {
         let logging_env_vars = state.logging_env_vars;
         let stdout_sender = state.stdout_sender.clone();
+        state.console.clear();
         let Some(instance) = state.current_instance() else {return};
         let _ = instance.kill_monado();
         instance.start_monado(&logging_env_vars, stdout_sender);
@@ -49,10 +50,16 @@ fn monado_control_buttons(state: &mut RexApp, ui: &mut Ui) {
 
 fn instance_selector(state: &mut RexApp, ui: &mut Ui) {
     ComboBox::from_id_source(0)
-        .selected_text("Select Instance")
+        .selected_text(
+            state
+                .current_instance
+                .as_ref()
+                .map(String::as_str)
+                .unwrap_or("Select Instance"),
+        )
         .show_ui(ui, |ui| {
             for name in state.instances.keys() {
-                ui.selectable_value(&mut state.current_instance, name.clone(), name);
+                ui.selectable_value(&mut state.current_instance, Some(name.clone()), name);
             }
         });
 }
@@ -72,5 +79,6 @@ fn log_buttons(state: &mut RexApp, ui: &mut Ui) {
             });
             ui.output().copied_text = output_string;
         };
+        ui.label("Log:");
     });
 }

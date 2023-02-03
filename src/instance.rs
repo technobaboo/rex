@@ -102,7 +102,7 @@ impl MonadoInstance {
     }
 
     pub fn kill_monado(&mut self) -> std::io::Result<()> {
-        let Some(child) = &mut self.child else {return Err(ErrorKind::BrokenPipe.into())};
+        let Some(mut child) = self.child.take() else {return Err(ErrorKind::BrokenPipe.into())};
         println!("killing: {}", child.pid().unwrap());
         child.kill()?;
         let _ = nix::sys::wait::wait();

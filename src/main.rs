@@ -12,6 +12,7 @@ use instance::MonadoInstance;
 use log_options::LoggingEnvVars;
 use rustc_hash::FxHashMap;
 use std::{
+    iter::FromIterator,
     path::PathBuf,
     sync::{
         mpsc::{sync_channel, Receiver, SyncSender},
@@ -31,7 +32,7 @@ pub fn main() {
 pub struct RexApp {
     pub monado_instance_dir: PathBuf,
     pub logging_env_vars: LoggingEnvVars,
-    current_instance: String,
+    current_instance: Option<String>,
     instances: FxHashMap<String, MonadoInstance>,
     pub console: String,
     pub stdout_sender: Arc<Mutex<SyncSender<String>>>,
@@ -49,25 +50,36 @@ impl RexApp {
         let monado_instance_dir = dirs::config_dir().unwrap().join("monado").join("instances");
         std::fs::create_dir_all(&monado_instance_dir).unwrap();
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
-        RexApp {
+        let mut app = RexApp {
             monado_instance_dir,
             logging_env_vars: confy::load("monado", "logging").unwrap(),
             console: String::default(),
             stdout_sender: Arc::new(Mutex::new(stdout_sender)),
             stdout_receiver,
-            current_instance: String::default(),
+            current_instance: None,
             instances: FxHashMap::default(),
-        }
+        };
+        let _ = app.load_instances();
+        app
+    }
+    pub fn load_instances(&mut self) -> std::io::Result<()> {
+        self.instances = FxHashMap::from_iter(
+            std::fs::read_dir(&self.monado_instance_dir)?
+                .filter_map(|d| Some(d.ok()?.file_name().to_str()?.to_string()))
+                .filter_map(|n| Some((n.clone(), MonadoInstance::create_load(self, n)?))),
+        );
+
+        Ok(())
     }
     pub fn save_global(&self) -> Result<(), ConfyError> {
         confy::store("monado", "logging", &self.logging_env_vars)
     }
     pub fn current_instance(&mut self) -> Option<&mut MonadoInstance> {
-        self.instances.get_mut(&self.current_instance)
+        self.instances.get_mut(self.current_instance.as_ref()?)
     }
 }
 impl App for RexApp {
-    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         control_panel::update(self, ctx);
         log_options::update(self, ctx);
 
@@ -85,7 +97,7 @@ impl App for RexApp {
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&style))
             .show(ctx, |ui| {
-                console::update(self, ui);
+                console::update(self, ui, frame);
             });
     }
 }

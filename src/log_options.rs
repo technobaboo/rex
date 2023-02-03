@@ -6,15 +6,13 @@ use subprocess::Exec;
 
 pub fn update(state: &mut RexApp, ctx: &Context) {
     egui::Window::new("Logging Options")
+        .default_pos([512.0, 0.0])
         .collapsible(true)
         .show(ctx, |ui| {
-            compositor_update(state, ui);
+            log_level_dropdown(state, ui, "Compositor", |s| {
+                &mut s.logging_env_vars.compositor_log
+            });
         });
-}
-fn compositor_update(state: &mut RexApp, ui: &mut Ui) {
-    log_level_dropdown(state, ui, "Compositor", |s| {
-        &mut s.logging_env_vars.compositor_log
-    });
 }
 
 fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(

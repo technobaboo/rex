@@ -18,11 +18,11 @@ impl CompositorSettings {
         }
     }
 
-    pub fn update(state: &mut MonadoInstance, ctx: &Context) {
+    pub fn update(inst: &mut MonadoInstance, ctx: &Context) {
         egui::Window::new("Compositor")
             .collapsible(true)
             .show(ctx, |ui| {
-                Forcing::update(state, ui);
+                Forcing::update(inst, ui);
             });
     }
 }
