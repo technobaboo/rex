@@ -52,9 +52,7 @@ fn instance_selector(state: &mut RexApp, ui: &mut Ui) {
     ComboBox::from_id_source(0)
         .selected_text(
             state
-                .current_instance
-                .as_ref()
-                .map(String::as_str)
+                .current_instance.as_deref()
                 .unwrap_or("Select Instance"),
         )
         .show_ui(ui, |ui| {

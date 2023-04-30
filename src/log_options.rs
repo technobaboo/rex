@@ -22,7 +22,7 @@ fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(
     log_level_fn: F,
 ) {
     let log_level = log_level_fn(state);
-    let old_value = log_level.clone();
+    let old_value = *log_level;
     ComboBox::from_label(name)
         .selected_text(format!("{:?}", log_level))
         .show_ui(ui, |ui| {

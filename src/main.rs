@@ -18,9 +18,10 @@ use std::{
         mpsc::{sync_channel, Receiver, SyncSender},
         Arc, Mutex,
     },
+    error::Error,
 };
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let mut native_options = eframe::NativeOptions::default();
     native_options.min_window_size = Some(egui::Vec2 { x: 512.0, y: 512.0 });
     eframe::run_native(
@@ -28,6 +29,7 @@ pub fn main() {
         native_options,
         Box::new(|cc| Box::new(RexApp::new(cc))),
     );
+    Ok(())
 }
 pub struct RexApp {
     pub monado_instance_dir: PathBuf,
@@ -47,8 +49,8 @@ impl RexApp {
         let visuals = Visuals::dark();
         cc.egui_ctx.set_visuals(visuals);
 
-        let monado_instance_dir = dirs::config_dir().unwrap().join("monado").join("instances");
-        std::fs::create_dir_all(&monado_instance_dir).unwrap();
+        let monado_instance_dir = dirs::config_dir().expect("System does not have a configured config directory.").join("monado").join("instances");
+        std::fs::create_dir_all(&monado_instance_dir).expect("Unable to create config directory folders.");
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
         let mut app = RexApp {
             monado_instance_dir,
@@ -72,7 +74,7 @@ impl RexApp {
         Ok(())
     }
     pub fn save_global(&self) -> Result<(), ConfyError> {
-        confy::store("monado", "logging", &self.logging_env_vars)
+        confy::store("monado", "logging", self.logging_env_vars)
     }
     pub fn current_instance(&mut self) -> Option<&mut MonadoInstance> {
         self.instances.get_mut(self.current_instance.as_ref()?)

@@ -9,7 +9,7 @@ use std::{
     io::{BufRead, BufReader, ErrorKind},
     path::PathBuf,
     sync::{mpsc::SyncSender, Arc, Mutex},
-    thread,
+    thread, error::Error,
 };
 use subprocess::{Exec, Popen, Redirection};
 
@@ -27,12 +27,12 @@ pub struct MonadoInstance {
     pub child: Option<Popen>,
 }
 impl MonadoInstance {
-    pub fn create_load(app: &RexApp, name: String) -> Option<Self> {
-        let instance_dir = app.monado_instance_dir.join(&name);
+    pub fn create_load(app: &RexApp, name: String) -> Result<Self, confy::ConfyError> {
+        let instance_dir = app.monado_instance_dir.join(name);
         let mut instance: MonadoInstance =
-            confy::load_path(instance_dir.join("instance.toml")).ok()?;
+            confy::load_path(instance_dir.join("instance.toml"))?;
         instance.instance_dir = instance_dir;
-        Some(instance)
+        Ok(instance)
     }
     pub fn update(&mut self, ctx: &Context) {
         CompositorSettings::update(self, ctx);
