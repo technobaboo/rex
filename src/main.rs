@@ -52,9 +52,19 @@ impl RexApp {
         let monado_instance_dir = dirs::config_dir().expect("System does not have a configured config directory.").join("monado").join("instances");
         std::fs::create_dir_all(&monado_instance_dir).expect("Unable to create config directory folders.");
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
+
+        let log_env_vars;
+
+        //TODO: this could be handled, say a pop up explaining what is wrong with the config and
+        // asking if the user would like to regenerate the config from scratch or exit
+        match confy::load("monado", "logging") {
+            Ok(log_options) => log_env_vars = log_options,
+            Err(err) => panic!(format!("Error loading logging configuration: {}", err))
+        }
+
         let mut app = RexApp {
             monado_instance_dir,
-            logging_env_vars: confy::load("monado", "logging").unwrap(),
+            logging_env_vars: log_env_vars,
             console: String::default(),
             stdout_sender: Arc::new(Mutex::new(stdout_sender)),
             stdout_receiver,

@@ -49,14 +49,18 @@ impl MonadoInstance {
         command = command.stderr(Redirection::Merge);
         command = command.stdout(Redirection::Pipe);
         command = command.stdin(Redirection::None);
-        let mut child = command.popen().unwrap();
-        let pid = child.pid().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let sender = stdout_sender;
+        let mut child;
+
+        match command.popen() {
+            Ok(popen) => child = popen,
+            Err(err) => panic!(format!("Unable to create monado service: {}", err))
+        }
+
+        let pid = child.pid().expect("Newly created monado service process does not have pid.");
+        let stdout = child.stdout.expect("Monado service process lacks readable stdout.");
         thread::spawn(move || {
-            let b = stdout;
             let child_pid = pid;
-            let sender = sender.lock().unwrap().clone();
+            let sender = stdout_sender.lock().unwrap().clone();
             loop {
                 match nix::sys::wait::waitpid(
                     Pid::from_raw(child_pid as pid_t),
@@ -70,7 +74,7 @@ impl MonadoInstance {
                         return;
                     }
                 }
-                match b.try_clone() {
+                match stdout.try_clone() {
                     Ok(b) => {
                         let mut reader = BufReader::new(b);
                         let mut my_string = String::new();
@@ -103,7 +107,13 @@ impl MonadoInstance {
 
     pub fn kill_monado(&mut self) -> std::io::Result<()> {
         let Some(mut child) = self.child.take() else {return Err(ErrorKind::BrokenPipe.into())};
-        println!("killing: {}", child.pid().unwrap());
+        if let Some(pid) = child.pid() {
+            println!("killing: {}", pid);
+        }
+        else {
+            println!("killing: {}", "[PID NOT AVAILABLE]");
+        }
+
         child.kill()?;
         let _ = nix::sys::wait::wait();
         //We don't need this because we wait in the thread.
