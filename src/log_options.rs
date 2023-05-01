@@ -33,7 +33,7 @@ fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(
             ui.selectable_value(log_level, LoggingLevel::Error, "Error");
         });
     if *log_level != old_value {
-        drop(log_level);
+        drop(*log_level);
         state.save_global().unwrap();
     }
 }

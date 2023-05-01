@@ -16,6 +16,7 @@ use subprocess::{Exec, Popen, Redirection};
 use crate::{
     compositor::CompositorSettings, env_var::EnvVars, log_options::LoggingEnvVars, RexApp,
 };
+use crate::expect_gui::ExpectDialog;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct MonadoInstance {
@@ -53,11 +54,11 @@ impl MonadoInstance {
 
         match command.popen() {
             Ok(popen) => child = popen,
-            Err(err) => panic!(format!("Unable to create monado service: {}", err))
+            Err(err) => panic!("Unable to create monado service: {}", err)
         }
 
-        let pid = child.pid().expect("Newly created monado service process does not have pid.");
-        let stdout = child.stdout.expect("Monado service process lacks readable stdout.");
+        let pid = child.pid().expect_dialog("Newly created monado service process does not have pid.");
+        let stdout = child.stdout.take().expect_dialog("Monado service process lacks readable stdout.");
         thread::spawn(move || {
             let child_pid = pid;
             let sender = stdout_sender.lock().unwrap().clone();

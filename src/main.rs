@@ -2,6 +2,7 @@ mod compositor;
 mod console;
 mod control_panel;
 mod env_var;
+mod expect_gui;
 pub mod instance;
 mod log_options;
 
@@ -20,6 +21,7 @@ use std::{
     },
     error::Error,
 };
+use crate::expect_gui::ExpectDialog;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     let mut native_options = eframe::NativeOptions::default();
@@ -49,8 +51,8 @@ impl RexApp {
         let visuals = Visuals::dark();
         cc.egui_ctx.set_visuals(visuals);
 
-        let monado_instance_dir = dirs::config_dir().expect("System does not have a configured config directory.").join("monado").join("instances");
-        std::fs::create_dir_all(&monado_instance_dir).expect("Unable to create config directory folders.");
+        let monado_instance_dir = dirs::config_dir().expect_dialog("System does not have a configured config directory.").join("monado").join("instances");
+        std::fs::create_dir_all(&monado_instance_dir).expect_dialog("Unable to create config directory folders.");
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
 
         let log_env_vars;
@@ -59,7 +61,7 @@ impl RexApp {
         // asking if the user would like to regenerate the config from scratch or exit
         match confy::load("monado", "logging") {
             Ok(log_options) => log_env_vars = log_options,
-            Err(err) => panic!(format!("Error loading logging configuration: {}", err))
+            Err(err) => panic!("Error loading logging configuration: {}", err)
         }
 
         let mut app = RexApp {
@@ -74,11 +76,11 @@ impl RexApp {
         let _ = app.load_instances();
         app
     }
-    pub fn load_instances(&mut self) -> std::io::Result<()> {
+    pub fn load_instances(&mut self) -> Result<(), Box<dyn Error>> {
         self.instances = FxHashMap::from_iter(
             std::fs::read_dir(&self.monado_instance_dir)?
                 .filter_map(|d| Some(d.ok()?.file_name().to_str()?.to_string()))
-                .filter_map(|n| Some((n.clone(), MonadoInstance::create_load(self, n)?))),
+                .filter_map(|n| Some((n.clone(), MonadoInstance::create_load(self, n).ok()?))),
         );
 
         Ok(())
