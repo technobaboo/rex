@@ -24,6 +24,9 @@ use std::{
 use crate::expect_gui::ExpectDialog;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
+    let f:Option<bool> = None;
+    f.expect_dialog("No boolean found :(");
+
     let mut native_options = eframe::NativeOptions::default();
     native_options.min_window_size = Some(egui::Vec2 { x: 512.0, y: 512.0 });
     eframe::run_native(
