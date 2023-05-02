@@ -55,11 +55,9 @@ impl RexApp {
         std::fs::create_dir_all(&monado_instance_dir).expect_dialog("Unable to create config directory folders.");
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
 
-        let log_env_vars: LoggingEnvVars = RexApp::load_tolerant("monado", "logging");
-
         let mut app = RexApp {
             monado_instance_dir,
-            logging_env_vars: log_env_vars,
+            logging_env_vars: RexApp::load_tolerant("monado", "logging"),
             console: String::default(),
             stdout_sender: Arc::new(Mutex::new(stdout_sender)),
             stdout_receiver,
