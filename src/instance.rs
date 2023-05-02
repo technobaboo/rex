@@ -74,7 +74,7 @@ impl MonadoInstance {
                 {
                     Ok(WaitStatus::StillAlive) => {}
                     _ => {
-                        println!("monado is dead");
+                        println!("Monado is dead. Quitting monado service");
                         return;
                     }
                 }
@@ -112,10 +112,10 @@ impl MonadoInstance {
     pub fn kill_monado(&mut self) -> std::io::Result<()> {
         let Some(mut child) = self.child.take() else {return Err(ErrorKind::BrokenPipe.into())};
         if let Some(pid) = child.pid() {
-            println!("killing: {}", pid);
+            println!("Killing monado service: {}", pid);
         }
         else {
-            println!("killing: [PID NOT AVAILABLE]");
+            println!("Killing monado service: [PID NOT AVAILABLE]");
         }
 
         child.kill()?;

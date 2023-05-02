@@ -79,7 +79,7 @@ pub fn update(state: &mut RexApp, ui: &mut Ui, frame: &eframe::Frame) {
                 output = Some(ansi);
             }
         });
-        let galley = ui.ctx().fonts().layout_job(text_layout_job);
+        let galley = ui.fonts(|f| f.layout_job(text_layout_job));
         ui.label(Galley(galley));
     });
 }
