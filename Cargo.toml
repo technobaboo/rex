@@ -18,3 +18,4 @@ serde = { version = "1.0.152", features = ["derive"] }
 dirs = "4.0.0"
 rustc-hash = "1.1.0"
 native-dialog = { git = "https://github.com/CorneliusCornbread/native-dialog-rs" }
+expect-dialog = { path = "/home/jack/repos/expect-dialog-rs/" }

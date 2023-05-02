@@ -1,4 +1,5 @@
 use egui::Context;
+use expect_dialog::ExpectDialog;
 use libc::pid_t;
 use nix::{
     sys::wait::{WaitPidFlag, WaitStatus},
@@ -16,7 +17,6 @@ use subprocess::{Exec, Popen, Redirection};
 use crate::{
     compositor::CompositorSettings, env_var::EnvVars, log_options::LoggingEnvVars, RexApp,
 };
-use crate::expect_gui::ExpectDialog;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct MonadoInstance {

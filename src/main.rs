@@ -2,7 +2,6 @@ mod compositor;
 mod console;
 mod control_panel;
 mod env_var;
-mod expect_gui;
 pub mod instance;
 mod log_options;
 
@@ -21,12 +20,9 @@ use std::{
     },
     error::Error,
 };
-use crate::expect_gui::ExpectDialog;
+use expect_dialog::ExpectDialog;
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let f:Option<bool> = None;
-    f.expect_dialog("No boolean found :(");
-
     let mut native_options = eframe::NativeOptions::default();
     native_options.min_window_size = Some(egui::Vec2 { x: 512.0, y: 512.0 });
     eframe::run_native(
