@@ -31,8 +31,11 @@ pub fn update(state: &mut RexApp, ui: &mut Ui, frame: &eframe::Frame) {
                     Some(AnsiSequence::SetGraphicsMode(graphics)) => {
                         let mut color = Color32::GRAY;
                         let _my_vec = graphics.to_vec();
-                        if graphics.len() > 1 {
-                            match graphics.get(1).unwrap() {
+
+                        let graphics_color = graphics.get(1);
+
+                        if graphics_color.is_some() {
+                            match graphics_color.unwrap(){
                                 31 => {
                                     color = Color32::RED;
                                 }

@@ -34,7 +34,7 @@ fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(
         });
     if *log_level != old_value {
         drop(*log_level);
-        state.save_global().unwrap();
+        state.save_global();
     }
 }
 

@@ -34,11 +34,12 @@ fn monado_control_buttons(state: &mut RexApp, ui: &mut Ui) {
     if state.current_instance().is_none() {
         return;
     };
+    
     if start_button.inner.clicked() {
         let logging_env_vars = state.logging_env_vars;
         let stdout_sender = state.stdout_sender.clone();
         state.console.clear();
-        let Some(instance) = state.current_instance() else {return}; //TODO: dialog window explaining error then early return, do not exit
+        let Some(instance) = state.current_instance() else {return};
         let _ = instance.kill_monado();
         instance.start_monado(&logging_env_vars, stdout_sender);
     }

@@ -35,6 +35,7 @@ impl MonadoInstance {
         instance.instance_dir = instance_dir;
         Ok(instance)
     }
+    
     pub fn update(&mut self, ctx: &Context) {
         CompositorSettings::update(self, ctx);
     }
@@ -61,15 +62,17 @@ impl MonadoInstance {
         let stdout = child.stdout.take().expect_dialog("Monado service process lacks readable stdout.");
         thread::spawn(move || {
             let child_pid = pid;
-            let sender = stdout_sender.lock().unwrap().clone();
+            let sender = stdout_sender
+                .lock()
+                .expect("Did the monado GUI crash? Failed to get stdout sender lock. Exiting monado service")
+                .clone();
             loop {
                 match nix::sys::wait::waitpid(
                     Pid::from_raw(child_pid as pid_t),
                     Some(WaitPidFlag::WNOHANG),
                 )
-                .unwrap()
                 {
-                    WaitStatus::StillAlive => {}
+                    Ok(WaitStatus::StillAlive) => {}
                     _ => {
                         println!("monado is dead");
                         return;
@@ -112,7 +115,7 @@ impl MonadoInstance {
             println!("killing: {}", pid);
         }
         else {
-            println!("killing: {}", "[PID NOT AVAILABLE]");
+            println!("killing: [PID NOT AVAILABLE]");
         }
 
         child.kill()?;
