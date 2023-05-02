@@ -109,7 +109,9 @@ impl Forcing {
     }
 }
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum WindowType {
+    #[default]
     Auto,
     NvidiaDirect(Option<String>),
     Vk(u32),
@@ -155,20 +157,14 @@ impl WindowType {
         command
     }
 }
-impl Default for WindowType {
-    fn default() -> Self {
-        WindowType::Auto
-    }
-}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum XcbScreenType {
     Fullscreen,
+    #[default]
     Windowed,
 }
-impl Default for XcbScreenType {
-    fn default() -> Self {
-        XcbScreenType::Windowed
-    }
-}
+
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct XcbScreenNumber(pub u32);

@@ -1,4 +1,5 @@
 use egui::Context;
+use expect_dialog::ExpectDialog;
 use libc::pid_t;
 use nix::{
     sys::wait::{WaitPidFlag, WaitStatus},
@@ -27,13 +28,14 @@ pub struct MonadoInstance {
     pub child: Option<Popen>,
 }
 impl MonadoInstance {
-    pub fn create_load(app: &RexApp, name: String) -> Option<Self> {
-        let instance_dir = app.monado_instance_dir.join(&name);
+    pub fn create_load(app: &RexApp, name: String) -> Result<Self, confy::ConfyError> {
+        let instance_dir = app.monado_instance_dir.join(name);
         let mut instance: MonadoInstance =
-            confy::load_path(instance_dir.join("instance.toml")).ok()?;
+            confy::load_path(instance_dir.join("instance.toml"))?;
         instance.instance_dir = instance_dir;
-        Some(instance)
+        Ok(instance)
     }
+    
     pub fn update(&mut self, ctx: &Context) {
         CompositorSettings::update(self, ctx);
     }
@@ -49,28 +51,34 @@ impl MonadoInstance {
         command = command.stderr(Redirection::Merge);
         command = command.stdout(Redirection::Pipe);
         command = command.stdin(Redirection::None);
-        let mut child = command.popen().unwrap();
-        let pid = child.pid().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let sender = stdout_sender;
+        let mut child;
+
+        match command.popen() {
+            Ok(popen) => child = popen,
+            Err(err) => panic!("Unable to create monado service: {}", err)
+        }
+
+        let pid = child.pid().expect_dialog("Newly created monado service process does not have pid.");
+        let stdout = child.stdout.take().expect_dialog("Monado service process lacks readable stdout.");
         thread::spawn(move || {
-            let b = stdout;
             let child_pid = pid;
-            let sender = sender.lock().unwrap().clone();
+            let sender = stdout_sender
+                .lock()
+                .expect("Did the monado GUI crash? Failed to get stdout sender lock. Exiting monado service")
+                .clone();
             loop {
                 match nix::sys::wait::waitpid(
                     Pid::from_raw(child_pid as pid_t),
                     Some(WaitPidFlag::WNOHANG),
                 )
-                .unwrap()
                 {
-                    WaitStatus::StillAlive => {}
+                    Ok(WaitStatus::StillAlive) => {}
                     _ => {
-                        println!("monado is dead");
+                        println!("Monado is dead. Quitting monado service");
                         return;
                     }
                 }
-                match b.try_clone() {
+                match stdout.try_clone() {
                     Ok(b) => {
                         let mut reader = BufReader::new(b);
                         let mut my_string = String::new();
@@ -103,7 +111,13 @@ impl MonadoInstance {
 
     pub fn kill_monado(&mut self) -> std::io::Result<()> {
         let Some(mut child) = self.child.take() else {return Err(ErrorKind::BrokenPipe.into())};
-        println!("killing: {}", child.pid().unwrap());
+        if let Some(pid) = child.pid() {
+            println!("Killing monado service: {}", pid);
+        }
+        else {
+            println!("Killing monado service: [PID NOT AVAILABLE]");
+        }
+
         child.kill()?;
         let _ = nix::sys::wait::wait();
         //We don't need this because we wait in the thread.

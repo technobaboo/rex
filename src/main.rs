@@ -5,11 +5,12 @@ mod env_var;
 pub mod instance;
 mod log_options;
 
-use confy::ConfyError;
+
 use eframe::{App, Frame};
 use egui::{Color32, Context, Style, Visuals};
 use instance::MonadoInstance;
 use log_options::LoggingEnvVars;
+use native_dialog::MessageDialog;
 use rustc_hash::FxHashMap;
 use std::{
     iter::FromIterator,
@@ -18,16 +19,19 @@ use std::{
         mpsc::{sync_channel, Receiver, SyncSender},
         Arc, Mutex,
     },
+    error::Error,
 };
+use expect_dialog::ExpectDialog;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn Error>> {
     let mut native_options = eframe::NativeOptions::default();
     native_options.min_window_size = Some(egui::Vec2 { x: 512.0, y: 512.0 });
     eframe::run_native(
         "Malek's Monado Gui Utility",
         native_options,
         Box::new(|cc| Box::new(RexApp::new(cc))),
-    );
+    )?;
+    Ok(())
 }
 pub struct RexApp {
     pub monado_instance_dir: PathBuf,
@@ -47,12 +51,13 @@ impl RexApp {
         let visuals = Visuals::dark();
         cc.egui_ctx.set_visuals(visuals);
 
-        let monado_instance_dir = dirs::config_dir().unwrap().join("monado").join("instances");
-        std::fs::create_dir_all(&monado_instance_dir).unwrap();
+        let monado_instance_dir = dirs::config_dir().expect_dialog("System does not have a configured config directory.").join("monado").join("instances");
+        std::fs::create_dir_all(&monado_instance_dir).expect_dialog("Unable to create config directory folders.");
         let (stdout_sender, stdout_receiver) = sync_channel(64000);
+
         let mut app = RexApp {
             monado_instance_dir,
-            logging_env_vars: confy::load("monado", "logging").unwrap(),
+            logging_env_vars: RexApp::load_tolerant("monado", "logging"),
             console: String::default(),
             stdout_sender: Arc::new(Mutex::new(stdout_sender)),
             stdout_receiver,
@@ -62,21 +67,71 @@ impl RexApp {
         let _ = app.load_instances();
         app
     }
-    pub fn load_instances(&mut self) -> std::io::Result<()> {
+
+    pub fn load_instances(&mut self) -> Result<(), Box<dyn Error>> {
         self.instances = FxHashMap::from_iter(
             std::fs::read_dir(&self.monado_instance_dir)?
                 .filter_map(|d| Some(d.ok()?.file_name().to_str()?.to_string()))
-                .filter_map(|n| Some((n.clone(), MonadoInstance::create_load(self, n)?))),
-        );
+                .filter_map(|n| Some((n.clone(), MonadoInstance::create_load(self, n).ok()?))),
+        );   
 
         Ok(())
     }
-    pub fn save_global(&self) -> Result<(), ConfyError> {
-        confy::store("monado", "logging", &self.logging_env_vars)
+
+    pub fn save_global(&self) {
+        match confy::store("monado", "logging", self.logging_env_vars) {
+            Err(err) => {
+                println!("Error saving global logging config: {}", err);
+
+                MessageDialog::new()
+                    .set_title("Config Error")
+                    .set_text(&format!("Error saving global logging config.\nError:\n{}", err))
+                    .set_type(native_dialog::MessageType::Error)
+                    .show_confirm()
+                    .expect("Error creating dialog window for logging options error");
+            }   
+
+            _ => {}
+        }
     }
+
     pub fn current_instance(&mut self) -> Option<&mut MonadoInstance> {
         self.instances.get_mut(self.current_instance.as_ref()?)
     }
+
+    fn load_tolerant<'a, T>(app_name: &str, config_name: impl Into<Option<&'a str>>) -> T where T: serde::Serialize + serde::de::DeserializeOwned + Default {
+        let config: T;
+
+        let config_name_owned = config_name.into().unwrap_or("None");
+
+        match confy::load(app_name, config_name_owned) {
+            Ok(load_config) => config = load_config,
+            Err(err) => {
+                println!("Error loading config: {}", err);
+
+                let regen_saved_config = MessageDialog::new()
+                    .set_title("Config Error")
+                    .set_text(&format!("Error loading config '{}', continuing with default options for config. \nWould you like to regenerate the config file? \n\nError: \n{}", config_name_owned, err))
+                    .set_type(native_dialog::MessageType::Error)
+                    .show_confirm()
+                    .expect("Error creating dialog window for logging options error");
+                
+                config = T::default();
+
+                if regen_saved_config && confy::store(app_name, config_name_owned, &config).is_err() {
+                    MessageDialog::new()
+                        .set_title("Config Error")
+                        .set_text(&format!("Error saving config, is monado-gui missing necessary file permissions? \n Error: \n {}", err))
+                        .set_type(native_dialog::MessageType::Error)
+                        .show_confirm()
+                        .expect("Error creating dialog window for logging options error");
+                }
+            }   
+        }
+
+        config
+    }
+
 }
 impl App for RexApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
