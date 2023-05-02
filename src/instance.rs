@@ -9,7 +9,7 @@ use std::{
     io::{BufRead, BufReader, ErrorKind},
     path::PathBuf,
     sync::{mpsc::SyncSender, Arc, Mutex},
-    thread, error::Error,
+    thread,
 };
 use subprocess::{Exec, Popen, Redirection};
 
