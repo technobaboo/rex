@@ -30,7 +30,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         "Malek's Monado Gui Utility",
         native_options,
         Box::new(|cc| Box::new(RexApp::new(cc))),
-    );
+    )?;
     Ok(())
 }
 pub struct RexApp {
