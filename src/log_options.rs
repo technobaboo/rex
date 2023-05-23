@@ -1,5 +1,5 @@
 use crate::RexApp;
-use egui::{ComboBox, Context, Ui};
+use egui::{Color32, ComboBox, Context, RichText, Ui};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use subprocess::Exec;
@@ -26,11 +26,31 @@ fn log_level_dropdown<F: FnOnce(&mut RexApp) -> &mut LoggingLevel>(
     ComboBox::from_label(name)
         .selected_text(format!("{:?}", log_level))
         .show_ui(ui, |ui| {
-            ui.selectable_value(log_level, LoggingLevel::Info, "Info");
-            ui.selectable_value(log_level, LoggingLevel::Debug, "Debug");
-            ui.selectable_value(log_level, LoggingLevel::Trace, "Trace");
-            ui.selectable_value(log_level, LoggingLevel::Warn, "Warn");
-            ui.selectable_value(log_level, LoggingLevel::Error, "Error");
+            ui.selectable_value(
+                log_level,
+                LoggingLevel::Trace,
+                RichText::new("Trace").color(Color32::LIGHT_GRAY),
+            );
+            ui.selectable_value(
+                log_level,
+                LoggingLevel::Debug,
+                RichText::new("Debug").color(Color32::DEBUG_COLOR),
+            );
+            ui.selectable_value(
+                log_level,
+                LoggingLevel::Info,
+                RichText::new("Info").color(Color32::LIGHT_BLUE),
+            );
+            ui.selectable_value(
+                log_level,
+                LoggingLevel::Warn,
+                RichText::new("Warn").color(Color32::YELLOW),
+            );
+            ui.selectable_value(
+                log_level,
+                LoggingLevel::Error,
+                RichText::new("Error").color(Color32::LIGHT_RED),
+            );
         });
     if *log_level != old_value {
         state.save_global();
